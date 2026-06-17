@@ -1,28 +1,69 @@
-# PoC — Plataforma de Painéis AEB (Orçamento / SERPRO)
+# Painéis AEB — Sistema Completo de Gestão
 
-Prova de conceito que demonstra a arquitetura proposta em
-`../_analise/PROPOSTA_ARQUITETURA.md`: um painel de **execução orçamentária**
-(domínio do DaaS SERPRO / SIAFI, UO 24205) reconstruído como **frontend + backend
-próprios**, documentado e programável, sem dependência de licenças do Power BI.
+Sistema completo de painéis de gestão para a Agência Espacial Brasileira (UO 24205), com **13 painéis** organizados por domínio, backend FastAPI modular e frontend React com TypeScript.
 
-> Os dados são **sintéticos** (gerados em `backend/app/data.py`), com o mesmo formato
-> dimensional da fonte real (programa, ação, PTRES, função, grupo de despesa, fonte;
-> dotação/empenhado/liquidado/pago). Em produção, esse módulo seria substituído por um
-> repositório que lê o Data Warehouse populado via ELT (Python + dbt).
+> **Dados sintéticos** gerados para PoC. Em produção, substituir por conexão com Data Warehouse ou APIs governamentais (Siconfi, Portal da Transparência, SIAFI).
 
-## Estrutura
+## Painéis Disponíveis
+
+| Grupo | Painel | Unidade(s) |
+|---|---|---|
+| **Financeiro** | Orçamento / Execução | COF / DPOA / DGSE |
+| **Financeiro** | Auditoria — Saldos Alongados | Auditoria (SIAFI) |
+| **Administrativo** | Contratos e Aquisições | COAD / DCONT / DIAP / DIPA / DSG |
+| **Administrativo** | RH — Gestão de Pessoas | CGP / DPOA-CGP |
+| **Institucional** | Comunicação — ARI | ARI |
+| **Institucional** | Eventos — GAB | GAB Presidência |
+| **Institucional** | Publicações DOU | AUDIN |
+| **Técnico** | Educação — AEB Escola | DGSE / DIEN / URRN |
+| **Técnico** | Operações Espaciais | DGSE |
+| **Técnico** | TransfereGov | URSJC |
+| **Técnico** | Acordos Internacionais | ACI |
+| **Estratégico** | Governança e Integridade | DPOA/Assessoria |
+| **Estratégico** | Planejamento Estratégico — DGEP | DGEP |
+
+## Estrutura do Projeto
 
 ```
 sistema-paineis/
-  backend/    FastAPI (API + camada semântica + OpenAPI/Swagger)
-  frontend/   React + TypeScript + Vite + ECharts
+├── backend/
+│   ├── app/
+│   │   ├── dominios/          # 11 módulos por domínio
+│   │   │   ├── contratos_*
+│   │   │   ├── rh_*
+│   │   │   ├── comunicacao_*
+│   │   │   ├── educacao_*
+│   │   │   ├── operacoes_*
+│   │   │   ├── governanca_*
+│   │   │   ├── eventos_*
+│   │   │   ├── transferegov_*
+│   │   │   ├── dou_*
+│   │   │   ├── acordo_*
+│   │   │   └── dgep_*
+│   │   ├── auditoria.py       # Lógica de saldos alongados
+│   │   ├── main.py            # 40+ endpoints FastAPI
+│   │   └── schemas.py         # 30+ schemas Pydantic
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── api.ts             # Cliente API com todos os endpoints
+│   │   ├── App.tsx            # Menu lateral com 13 painéis
+│   │   ├── pages/             # 13 páginas React
+│   │   └── components/        # EChart wrapper
+│   ├── .env.example
+│   └── package.json
+├── vercel.json                # Configuração Vercel
+└── README.md
 ```
 
 ## Pré-requisitos
-- Python 3.11+ (testado em 3.14)
-- Node.js 18+ (testado em 24)
 
-## 1. Backend (porta 8000)
+- **Python 3.11+** (testado em 3.14)
+- **Node.js 18+** (testado em 24)
+
+## Desenvolvimento Local
+
+### 1. Backend (porta 8000)
 
 ```powershell
 cd backend
@@ -30,31 +71,11 @@ python -m pip install --user -r requirements.txt
 python -m uvicorn app.main:app --reload --port 8000
 ```
 
-- API: http://localhost:8000/api/v1/orcamento/kpis
-- **Documentação interativa (Swagger):** http://localhost:8000/docs
-- Esquema OpenAPI: http://localhost:8000/openapi.json
+- API: http://localhost:8000
+- **Documentação Swagger:** http://localhost:8000/docs
+- **OpenAPI Schema:** http://localhost:8000/openapi.json
 
-### Endpoints — Orçamento
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/health` | Status |
-| GET | `/api/v1/orcamento/dimensoes` | Valores para os filtros |
-| GET | `/api/v1/orcamento/kpis` | Cards: dotação, empenhado, liquidado, pago, % |
-| GET | `/api/v1/orcamento/serie-mensal` | Série mensal (linha) |
-| GET | `/api/v1/orcamento/ranking?por=programa` | Ranking por dimensão (barras) |
-| GET | `/api/v1/orcamento/registros` | Tabela detalhada (paginada) |
-
-Todos aceitam filtros: `ano`, `programa`, `acao`, `funcao`, `grupo_despesa`, `fonte`.
-
-### Endpoints — Auditoria (Saldos Alongados)
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/api/v1/auditoria/saldos-alongados` | Contas com saldo inalterado por N meses |
-| GET | `/api/v1/auditoria/saldos-alongados/resumo` | Resumo agregado da auditoria |
-
-Parâmetros: `meses` (3–36, default 12), `min_meses` (2–12, default 3).
-
-## 2. Frontend (porta 5173)
+### 2. Frontend (porta 5173)
 
 ```powershell
 cd frontend
@@ -66,33 +87,148 @@ npm run dev
 - O Vite faz proxy de `/api` → `http://localhost:8000` (ver `vite.config.ts`).
 - Build de produção: `npm run build` (saída em `dist/`).
 
-## O que o PoC demonstra
-- **Camada semântica única** (regras de negócio centralizadas em `services.py`).
-- **API documentada** automaticamente (OpenAPI/Swagger) — resolve a falta de documentação.
-- **Frontend acessível** com KPIs, série temporal e rankings, filtros dinâmicos.
-- **Sem licença por usuário**: qualquer pessoa acessa via navegador.
+## Endpoints da API
 
-## 3. APIs alternativas ao DaaS SERPRO
+### Orçamento
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/health` | Status |
+| GET | `/api/v1/orcamento/dimensoes` | Valores para filtros |
+| GET | `/api/v1/orcamento/kpis` | KPIs: dotação, empenhado, liquidado, pago |
+| GET | `/api/v1/orcamento/serie-mensal` | Série mensal |
+| GET | `/api/v1/orcamento/ranking?por=programa` | Ranking por dimensão |
+| GET | `/api/v1/orcamento/registros` | Tabela detalhada |
 
-O sistema foi projetado para consumir múltiplas fontes de dados orçamentários, reduzindo a dependência exclusiva do DaaS SERPRO:
+Filtros: `ano`, `programa`, `acao`, `funcao`, `grupo_despesa`, `fonte`.
 
-| Fonte | Tipo | Autenticação | Dados | URL |
-|---|---|---|---|---|
-| **Siconfi API** | REST (JSON) | Não | MSC Orçamentária, RREO | `http://apidatalake.tesouro.gov.br/docs/siconfi/` |
-| **Portal da Transparência** | REST (JSON) | Chave de API | Despesas (empenho/liq/pag) | `https://portaldatransparencia.gov.br/api-de-dados` |
-| **Tesouro Transparente** | REST (JSON) | Não | RREO, relatórios fiscais | `https://www.tesourotransparente.gov.br` |
-| **SIAFI / Tesouro Gerencial** | Arquivos / Web Services | Gov.br | Saldos contábeis, execução | Acesso interno via SIAFI Web |
-| **DaaS SERPRO** | SQL/ODBC | Paga | Tabelas `WD_*` | Via contrato SERPRO |
+### Auditoria (Saldos Alongados)
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/api/v1/auditoria/saldos-alongados` | Contas com saldo inalterado |
+| GET | `/api/v1/auditoria/saldos-alongados/resumo` | Resumo agregado |
 
-A lógica de auditoria (`backend/app/auditoria.py`) consome dados sintéticos no PoC, mas já está estruturada para receber:
-- Arquivos Excel exportados do SIAFI / Tesouro Gerencial (via `renomeia_arquivos`)
-- Respostas da API Siconfi (`/msc_orcamentaria`)
-- Respostas da API Portal da Transparência (detalhamento de despesas)
+Parâmetros: `meses` (3–36, default 12), `min_meses` (2–12, default 3).
 
-## Próximos passos (para virar produção)
-1. Substituir `data.py` por leitura do Data Warehouse (PostgreSQL) populado por **ELT (dbt)**.
-2. Implementar conectores para **API Siconfi** e **Portal da Transparência** como fontes primárias.
-3. Manter o **DaaS SERPRO** como fonte complementar/validação (tabelas `WD_*`).
-4. Adicionar **autenticação gov.br/SSO + RBAC** e auditoria (LGPD).
-5. Aplicar o **Design System gov.br** e validar acessibilidade (eMAG).
-6. CI/CD, testes (pytest/vitest) e observabilidade.
+### Outros Domínios
+Cada domínio possui endpoints similares:
+- `/api/v1/{dominio}/kpis` — KPIs agregados
+- `/api/v1/{dominio}` — Dados detalhados
+- `/api/v1/{dominio}/por-{agregacao}` — Agregações (status, área, país, etc.)
+
+Domínios: `contratos`, `rh`, `comunicacao`, `educacao`, `operacoes`, `governanca`, `eventos`, `transferegov`, `dou`, `acordos`, `dgep`.
+
+## Deploy em Produção
+
+### Opção 1: Vercel (Frontend) + Servidor Python (Backend)
+
+#### Frontend no Vercel
+
+1. Conecte o repositório ao Vercel
+2. Configure as variáveis de ambiente:
+   - `VITE_API_URL`: URL do backend em produção
+3. O arquivo `vercel.json` já está configurado para build automático
+
+#### Backend em Servidor Python
+
+Opções: Railway, Render, AWS, Azure, ou servidor próprio.
+
+**Exemplo com Railway:**
+
+```bash
+# Instale Railway CLI
+npm install -g @railway/cli
+
+# Login e criar projeto
+railway login
+railway init
+
+# Adicionar backend
+railway add backend
+railway up
+
+# Configurar porta 8000 e comando de start
+railway variables set PORT=8000
+railway variables set COMMAND="uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+```
+
+### Opção 2: Vercel + Supabase (Backend + Banco)
+
+1. **Criar projeto Supabase**
+   - Crie um projeto em https://supabase.com
+   - Obtenha `SUPABASE_URL` e `SUPABASE_ANON_KEY`
+
+2. **Adicionar extensão pgREST**
+   - Supabase já inclui pgREST (API REST automática)
+
+3. **Migrar dados para Supabase**
+   - Use o SQL Editor para criar tabelas equivalentes aos schemas Pydantic
+   - Importe dados dos módulos sintéticos ou conecte a fontes reais
+
+4. **Configurar frontend**
+   - `VITE_API_URL`: URL do Supabase (ex: `https://xxx.supabase.co`)
+   - Atualize `api.ts` para usar cliente Supabase em vez de fetch
+
+### Opção 3: Docker (Backend + Frontend em um container)
+
+```dockerfile
+# Dockerfile (raiz do projeto)
+FROM node:18 AS frontend
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
+
+FROM python:3.14
+WORKDIR /app
+COPY backend/requirements.txt ./
+RUN pip install -r requirements.txt
+COPY backend/ ./
+COPY --from=frontend /app/frontend/dist ./static
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+```bash
+docker build -t paineis-aeb .
+docker run -p 8000:8000 paineis-aeb
+```
+
+## Variáveis de Ambiente
+
+### Frontend
+```bash
+VITE_API_URL=http://localhost:8000  # Desenvolvimento
+VITE_API_URL=https://api.exemplo.com  # Produção
+```
+
+### Backend (opcional)
+```bash
+DATABASE_URL=postgresql://user:pass@host:port/db
+SUPABASE_URL=...
+SUPABASE_KEY=...
+```
+
+## Fontes de Dados em Produção
+
+O sistema foi projetado para consumir múltiplas fontes:
+
+| Fonte | Tipo | Autenticação | Dados |
+|---|---|---|---|
+| **Siconfi API** | REST (JSON) | Não | MSC Orçamentária, RREO |
+| **Portal da Transparência** | REST (JSON) | Chave de API | Despesas (empenho/liq/pag) |
+| **Tesouro Transparente** | REST (JSON) | Não | RREO, relatórios fiscais |
+| **SIAFI / Tesouro Gerencial** | Arquivos / Web Services | Gov.br | Saldos contábeis, execução |
+| **DaaS SERPRO** | SQL/ODBC | Paga | Tabelas `WD_*` |
+
+## Próximos Passos
+
+1. **Substituir dados sintéticos** por conexão com Data Warehouse ou APIs reais
+2. **Implementar autenticação** (gov.br/SSO + RBAC) e auditoria (LGPD)
+3. **Aplicar Design System gov.br** e validar acessibilidade (eMAG)
+4. **CI/CD**: GitHub Actions para testes e deploy automático
+5. **Testes**: pytest (backend) + vitest (frontend)
+6. **Observabilidade**: logs, métricas e tracing
+
+## Licença
+
+Este projeto é propriedade da Agência Espacial Brasileira (AEB).
