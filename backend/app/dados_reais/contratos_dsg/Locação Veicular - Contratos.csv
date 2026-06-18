@@ -1,0 +1,6 @@
+﻿ID_contrato,Contratada,Instrumento,Numero_intrumento,Data_vig_inicial,Data_vig_final,Valor_instrumento,Status
+1,Investcar,Contrato,03/2021,2021-03-12,2022-03-12,189300.0,
+2,Investcar,Termo Aditivo,1º TA,2022-03-12,2023-03-12,212544.0,
+3,Investcar,Termo Aditivo,2º TA,2023-03-13,2024-03-12,231380.52,
+4,Investcar,Termo Aditivo,3º TA,2024-03-13,2025-03-12,252466.05,
+5,Investcar,Termo Aditivo,4º TA,2025-03-13,2026-03-12,271212.39,Vigênte
