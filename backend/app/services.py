@@ -17,13 +17,30 @@ try:
 except Exception:  # psycopg2 nao instalado ou DATABASE_URL ausente
     sb = None  # type: ignore
 
+try:
+    from . import supabase_rest as sb_rest
+except Exception:
+    sb_rest = None  # type: ignore
+
 
 def _pct(num: float, den: float) -> float:
     return round((num / den) * 100, 2) if den else 0.0
 
 
 def _tem_supabase() -> bool:
-    return sb is not None and sb._DSN != ""
+    """Tenta psycopg2 primeiro; se falhar, tenta API REST."""
+    if sb is not None and sb._DSN != "":
+        return True
+    if sb_rest is not None and sb_rest._tem_supabase_rest():
+        return True
+    return False
+
+
+def _sb_client():
+    """Retorna o cliente ativo (psycopg2 ou REST)."""
+    if sb is not None and sb._DSN != "":
+        return sb
+    return sb_rest
 
 
 def filtrar(
@@ -43,7 +60,7 @@ def filtrar(
         if funcao: filtros["id_funcao_pt"] = funcao
         if grupo_despesa: filtros["id_grupo_despesa_nade"] = grupo_despesa
         if fonte: filtros["id_in_resultado_lei_ceor"] = fonte
-        return sb.consultar_orcamento(filtros or None)
+        return _sb_client().consultar_orcamento(filtros or None)
 
     regs = gerar_registros()
     out = []
@@ -69,7 +86,7 @@ def filtrar(
 def kpis(regs: list[dict]) -> dict:
     if _tem_supabase() and not regs:
         # Quando chamado diretamente sem filtrar, usa a query otimizada do Supabase
-        return sb.kpi_orcamento()
+        return _sb_client().kpi_orcamento()
 
     dot = sum(r["dotacao_atual"] for r in regs)
     emp = sum(r["empenhado"] for r in regs)
@@ -132,17 +149,23 @@ def ranking(regs: list[dict], chave: str, limite: int = 10) -> list[dict]:
 
 def dimensoes() -> dict:
     if _tem_supabase():
-        sb_dims = sb.dimensoes_orcamento()
-        # Adiciona anos via consulta simples
+        client = _sb_client()
+        sb_dims = client.dimensoes_orcamento()
+        # Adiciona anos via consulta simples (psycopg2) ou fallback para REST
         try:
-            import psycopg2
-            from psycopg2.extras import RealDictCursor
-            con = psycopg2.connect(sb._DSN, cursor_factory=RealDictCursor)
-            with con.cursor() as cur:
-                cur.execute("select distinct id_ano_lanc from public.orcamento where id_uo = '24205' order by 1")
-                anos = [r["id_ano_lanc"] for r in cur.fetchall()]
-                sb_dims["anos"] = anos
-            con.close()
+            if sb is not None and sb._DSN:
+                import psycopg2
+                from psycopg2.extras import RealDictCursor
+                con = psycopg2.connect(sb._DSN, cursor_factory=RealDictCursor)
+                with con.cursor() as cur:
+                    cur.execute("select distinct id_ano_lanc from public.orcamento where id_uo = '24205' order by 1")
+                    anos = [r["id_ano_lanc"] for r in cur.fetchall()]
+                    sb_dims["anos"] = anos
+                con.close()
+            else:
+                # REST: extrai anos dos registros retornados
+                rows = client.consultar_orcamento()
+                sb_dims["anos"] = sorted({r["ano"] for r in rows if r.get("ano")})
         except Exception:
             sb_dims["anos"] = []
         return sb_dims
