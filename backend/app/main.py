@@ -39,17 +39,20 @@ app = FastAPI(
     ),
 )
 
-# CORS: dev (Vite) + producao (Vercel + outras)
-# Em producao, restringir para a URL especifica do frontend
+# CORS: dev (Vite) + producao (Vercel)
+_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://dashboard-one-snowy-70.vercel.app",
+    "https://dashboard-one-snowy-70.vercel.app/",
+]
+# Adiciona origens dinamicas da env
 _origins_str = os.getenv("CORS_ORIGINS", "")
-_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 if _origins_str:
     _origins.extend([o.strip() for o in _origins_str.split(",") if o.strip()])
-# Fallback: permite tudo em dev, mas em producao usar CORS_ORIGINS
-allow_all = os.getenv("ENV", "development") == "development"
 app.add_middleware(
     CORSMiddleware,
-    allow_origins="*" if allow_all else _origins,
+    allow_origins=_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
