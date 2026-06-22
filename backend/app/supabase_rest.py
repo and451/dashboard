@@ -18,36 +18,102 @@ def _tem_supabase_rest() -> bool:
     return bool(_SUPABASE_URL and _SUPABASE_KEY)
 
 
-def _req(path: str, params: dict | None = None) -> list[dict]:
+def _req(path: str, params: dict | None = None, paginate: bool = False) -> list[dict]:
     url = f"{_SUPABASE_URL}/rest/v1/{path}"
-    if params:
-        url += "?" + urlencode(params)
-    req = Request(
-        url,
-        headers={
-            "apikey": _SUPABASE_KEY,
-            "Authorization": f"Bearer {_SUPABASE_KEY}",
-            "Accept": "application/json",
-        },
-    )
-    with urlopen(req, timeout=30) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    base_params = dict(params) if params else {}
+    
+    if not paginate:
+        # Aumenta limite para 1000 (maximo default do Supabase)
+        base_params["limit"] = 1000
+        if base_params:
+            url += "?" + urlencode(base_params)
+        req = Request(
+            url,
+            headers={
+                "apikey": _SUPABASE_KEY,
+                "Authorization": f"Bearer {_SUPABASE_KEY}",
+                "Accept": "application/json",
+                "Prefer": "count=exact",
+            },
+        )
+        with urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    
+    # Paginacao para ler tudo
+    all_rows = []
+    offset = 0
+    batch = 1000
+    while True:
+        page_params = dict(base_params)
+        page_params["limit"] = batch
+        page_params["offset"] = offset
+        page_url = f"{_SUPABASE_URL}/rest/v1/{path}?" + urlencode(page_params)
+        req = Request(
+            page_url,
+            headers={
+                "apikey": _SUPABASE_KEY,
+                "Authorization": f"Bearer {_SUPABASE_KEY}",
+                "Accept": "application/json",
+            },
+        )
+        with urlopen(req, timeout=30) as resp:
+            rows = json.loads(resp.read().decode("utf-8"))
+        if not rows:
+            break
+        all_rows.extend(rows)
+        if len(rows) < batch:
+            break
+        offset += batch
+    return all_rows
 
 
 def consultar_orcamento(filtros: dict | None = None) -> list[dict]:
-    """Lê public.orcamento via REST API do Supabase."""
+    """Lê public.orcamento via REST API do Supabase.
+    
+    Usa a view orcamento_por_acao (ja agregada) para evitar baixar
+    11 mil linhas e agregar no Python.
+    """
     if not _tem_supabase_rest():
         return []
 
-    # Para queries complexas (group by, sum), usamos uma função RPC
-    # ou fazemos a agregação no Python (menos eficiente, mas funciona)
-    params = {"select": "*", "limit": 10000}
+    params = {"select": "*"}
     if filtros:
         for k, v in filtros.items():
-            params[f"{k}"] = f"eq.{v}"
+            # Mapeia campos do schema Registro para os da view
+            campo_map = {
+                "id_ano_lanc": "id_ano_lanc",
+                "id_uo": "id_uo",
+                "id_programa_pt": None,  # nao existe na view por_acao
+                "id_acao_pt": "id_acao_pt",
+                "id_funcao_pt": None,
+                "id_grupo_despesa_nade": None,
+                "id_in_resultado_lei_ceor": None,
+            }
+            campo = campo_map.get(k, k)
+            if campo:
+                params[campo] = f"eq.{v}"
 
-    rows = _req("orcamento", params)
-    return _agregar_por_fase(rows)
+    rows = _req("orcamento_por_acao", params, paginate=False)
+    # Converte para o formato do schema Registro
+    return [
+        {
+            "ano": r.get("id_ano_lanc", 0),
+            "mes": 12,
+            "uo": r.get("id_uo", "24205"),
+            "programa": r.get("no_programa_pt", ""),
+            "acao": r.get("no_acao_pt", ""),
+            "ptres": r.get("id_acao_pt", ""),
+            "funcao": "Não informado",
+            "grupo_despesa": "",
+            "fonte": "",
+            "dotacao_inicial": round(r.get("loa_atualizada") or 0, 2),
+            "dotacao_atual": round(r.get("loa_atualizada") or 0, 2),
+            "empenhado": round(r.get("empenhado") or 0, 2),
+            "liquidado": round(r.get("liquidado") or 0, 2),
+            "pago": round(r.get("pago") or 0, 2),
+        }
+        for r in rows
+    ]
 
 
 def _agregar_por_fase(rows: list[dict]) -> list[dict]:
@@ -96,11 +162,24 @@ def _agregar_por_fase(rows: list[dict]) -> list[dict]:
 
 
 def kpi_orcamento(ano: int | None = None) -> dict:
-    rows = consultar_orcamento({"id_ano_lanc": ano} if ano else None)
-    dot = sum(r["dotacao_atual"] for r in rows)
-    emp = sum(r["empenhado"] for r in rows)
-    liq = sum(r["liquidado"] for r in rows)
-    pag = sum(r["pago"] for r in rows)
+    """Usa a view orcamento_cards (1 linha por ano/UO) — muito mais rapido."""
+    from datetime import datetime
+    ano_padrao = ano or datetime.now().year
+    params = {
+        "id_uo": "eq.24205",
+        "id_ano_lanc": f"eq.{ano_padrao}",
+    }
+    rows = _req("orcamento_cards", params, paginate=False)
+    if not rows:
+        return {
+            "dotacao_atual": 0, "empenhado": 0, "liquidado": 0, "pago": 0,
+            "pct_empenhado": 0, "pct_liquidado": 0, "pct_pago": 0, "registros": 0,
+        }
+    r = rows[0]  # 1 linha = 1 ano/UO
+    dot = float(r.get("loa_atualizada") or 0)
+    emp = float(r.get("empenhado") or 0)
+    liq = float(r.get("liquidado") or 0)
+    pag = float(r.get("pago") or 0)
     return {
         "dotacao_atual": round(dot, 2),
         "empenhado": round(emp, 2),
@@ -109,20 +188,20 @@ def kpi_orcamento(ano: int | None = None) -> dict:
         "pct_empenhado": round(emp / dot * 100, 1) if dot else 0,
         "pct_liquidado": round(liq / dot * 100, 1) if dot else 0,
         "pct_pago": round(pag / dot * 100, 1) if dot else 0,
-        "registros": len(rows),
+        "registros": 1,
     }
 
 
 def dimensoes_orcamento() -> dict:
     if not _tem_supabase_rest():
         return {}
-    rows = _req("orcamento", {"select": "id_programa_pt,no_programa_pt", "id_uo": "eq.24205"})
+    # Usa view orcamento_por_acao (ja agregada)
+    rows = _req("orcamento_por_acao", {"select": "no_programa_pt", "id_uo": "eq.24205"})
     programas = []
     vistos = set()
     for r in rows:
-        p = r.get("id_programa_pt", "")
-        n = r.get("no_programa_pt", "")
+        p = r.get("no_programa_pt", "")
         if p and p not in vistos:
-            programas.append({"programa": p, "programa_nome": n})
+            programas.append({"programa": p, "programa_nome": p})
             vistos.add(p)
     return {"programas": programas}
