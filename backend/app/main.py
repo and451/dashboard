@@ -6,6 +6,8 @@ Docs (Swagger/OpenAPI): http://localhost:8000/docs
 """
 from __future__ import annotations
 
+import os
+
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -37,10 +39,13 @@ app = FastAPI(
     ),
 )
 
-# CORS para o frontend (Vite) em dev
+# CORS: dev (Vite) + producao (Vercel)
+_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+if os.getenv("VERCEL_URL"):
+    _origins.append(f"https://{os.getenv('VERCEL_URL')}")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

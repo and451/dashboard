@@ -2,6 +2,9 @@
 
 Centraliza as REGRAS DE NEGOCIO (metricas) num unico lugar, em vez de
 espalha-las por cada painel - resolvendo um dos problemas do cenario atual.
+
+Quando DATABASE_URL (Supabase) esta configurada, usa os dados reais do PostgreSQL;
+ caso contrario, mantem o fallback para dados locais (CSV ou sinteticos).
 """
 from __future__ import annotations
 
@@ -9,9 +12,18 @@ from collections import defaultdict
 
 from .data import gerar_registros
 
+try:
+    from . import supabase_client as sb
+except Exception:  # psycopg2 nao instalado ou DATABASE_URL ausente
+    sb = None  # type: ignore
+
 
 def _pct(num: float, den: float) -> float:
     return round((num / den) * 100, 2) if den else 0.0
+
+
+def _tem_supabase() -> bool:
+    return sb is not None and sb._DSN != ""
 
 
 def filtrar(
@@ -23,6 +35,16 @@ def filtrar(
     fonte: str | None = None,
     uo: str | None = None,
 ) -> list[dict]:
+    if _tem_supabase():
+        filtros = {}
+        if ano: filtros["id_ano_lanc"] = ano
+        if programa: filtros["id_programa_pt"] = programa
+        if acao: filtros["id_acao_pt"] = acao
+        if funcao: filtros["id_funcao_pt"] = funcao
+        if grupo_despesa: filtros["id_grupo_despesa_nade"] = grupo_despesa
+        if fonte: filtros["id_in_resultado_lei_ceor"] = fonte
+        return sb.consultar_orcamento(filtros or None)
+
     regs = gerar_registros()
     out = []
     for r in regs:
@@ -45,6 +67,10 @@ def filtrar(
 
 
 def kpis(regs: list[dict]) -> dict:
+    if _tem_supabase() and not regs:
+        # Quando chamado diretamente sem filtrar, usa a query otimizada do Supabase
+        return sb.kpi_orcamento()
+
     dot = sum(r["dotacao_atual"] for r in regs)
     emp = sum(r["empenhado"] for r in regs)
     liq = sum(r["liquidado"] for r in regs)
@@ -105,6 +131,22 @@ def ranking(regs: list[dict], chave: str, limite: int = 10) -> list[dict]:
 
 
 def dimensoes() -> dict:
+    if _tem_supabase():
+        sb_dims = sb.dimensoes_orcamento()
+        # Adiciona anos via consulta simples
+        try:
+            import psycopg2
+            from psycopg2.extras import RealDictCursor
+            con = psycopg2.connect(sb._DSN, cursor_factory=RealDictCursor)
+            with con.cursor() as cur:
+                cur.execute("select distinct id_ano_lanc from public.orcamento where id_uo = '24205' order by 1")
+                anos = [r["id_ano_lanc"] for r in cur.fetchall()]
+                sb_dims["anos"] = anos
+            con.close()
+        except Exception:
+            sb_dims["anos"] = []
+        return sb_dims
+
     regs = gerar_registros()
     def uniq(k):
         return sorted({r[k] for r in regs})
