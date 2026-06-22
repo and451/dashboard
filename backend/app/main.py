@@ -39,13 +39,17 @@ app = FastAPI(
     ),
 )
 
-# CORS: dev (Vite) + producao (Vercel)
+# CORS: dev (Vite) + producao (Vercel + outras)
+# Em producao, restringir para a URL especifica do frontend
+_origins_str = os.getenv("CORS_ORIGINS", "")
 _origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
-if os.getenv("VERCEL_URL"):
-    _origins.append(f"https://{os.getenv('VERCEL_URL')}")
+if _origins_str:
+    _origins.extend([o.strip() for o in _origins_str.split(",") if o.strip()])
+# Fallback: permite tudo em dev, mas em producao usar CORS_ORIGINS
+allow_all = os.getenv("ENV", "development") == "development"
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_origins,
+    allow_origins="*" if allow_all else _origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
