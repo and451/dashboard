@@ -197,7 +197,8 @@ export interface KpiDGEP {
   total_metas: number; concluidas: number; pct_conclusao: number; atrasadas: number;
 }
 
-const BASE = "/api/v1/orcamento";
+const API_URL = import.meta.env.VITE_API_URL || "";
+const BASE = `${API_URL}/api/v1/orcamento`;
 
 function qs(filtros: Filtros): string {
   const p = new URLSearchParams();
@@ -224,18 +225,18 @@ function qsWith(filtros: Filtros, extra: Record<string, string>): string {
   return s ? `?${s}` : "";
 }
 
-const BASE_AUDITORIA = "/api/v1/auditoria";
-const BASE_CONTRATOS = "/api/v1/contratos";
-const BASE_RH = "/api/v1/rh";
-const BASE_COM = "/api/v1/comunicacao";
-const BASE_EDU = "/api/v1/educacao";
-const BASE_OPS = "/api/v1/operacoes";
-const BASE_GOV = "/api/v1/governanca";
-const BASE_EVT = "/api/v1/eventos";
-const BASE_TG = "/api/v1/transferegov";
-const BASE_DOU = "/api/v1/dou";
-const BASE_ACD = "/api/v1/acordos";
-const BASE_DGEP = "/api/v1/dgep";
+const BASE_AUDITORIA = `${API_URL}/api/v1/auditoria`;
+const BASE_CONTRATOS = `${API_URL}/api/v1/contratos`;
+const BASE_RH = `${API_URL}/api/v1/rh`;
+const BASE_COM = `${API_URL}/api/v1/comunicacao`;
+const BASE_EDU = `${API_URL}/api/v1/educacao`;
+const BASE_OPS = `${API_URL}/api/v1/operacoes`;
+const BASE_GOV = `${API_URL}/api/v1/governanca`;
+const BASE_EVT = `${API_URL}/api/v1/eventos`;
+const BASE_TG = `${API_URL}/api/v1/transferegov`;
+const BASE_DOU = `${API_URL}/api/v1/dou`;
+const BASE_ACD = `${API_URL}/api/v1/acordos`;
+const BASE_DGEP = `${API_URL}/api/v1/dgep`;
 
 export const api = {
   // Orçamento
