@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demonstrativo Orçamentário e Financeiro - AEB</title>
+<style>
+  :root{--fundo:#0a1b3d;--card:#13294f;--borda:#23406e;--txt:#eaf0fb;
+        --teal:#2e8b9e;--azul:#5b9bd5;--rosa:#d98cb3;--verde:#3fae6a;--cinza:#8b97ad;--amarelo:#f0b429;}
+  *{box-sizing:border-box} body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;color:var(--txt);
+    background:linear-gradient(160deg,#06122b,#0e2350 60%,#0a1b3d);min-height:100vh}
+  .topo{display:flex;align-items:center;gap:18px;padding:18px 26px}
+  .logo{font-weight:800;font-size:26px;letter-spacing:1px;color:#fff} .logo .o{color:#19c3e6}
+  .topo h1{font-size:21px;margin:0;font-weight:800;flex:1}
+  select{background:#13294f;color:#fff;border:1px solid var(--borda);border-radius:6px;padding:6px 10px;font-size:14px}
+  main{padding:6px 22px 50px}
+  .cards{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin:10px 0 18px}
+  .c{border-radius:10px;padding:12px 14px;color:#10233f;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+  .c .t{font-size:12px;font-weight:600;opacity:.85} .c .v{font-size:17px;font-weight:800;margin-top:4px}
+  .grid2{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+  .painel{background:var(--card);border:1px solid var(--borda);border-radius:12px;padding:16px}
+  .painel h2{font-size:15px;margin:0 0 10px;font-weight:700}
+  .gauges{display:flex;flex-direction:column;gap:12px}
+  .gauge{background:var(--card);border:1px solid var(--borda);border-radius:12px;padding:10px 16px;text-align:center}
+  .gauge .lab{font-size:13px;opacity:.9} .gauge .num{font-size:26px;font-weight:800;margin-top:-6px}
+  .anos{display:flex;gap:6px;align-items:flex-end;height:150px;padding:8px 4px 0}
+  .anos .col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;cursor:pointer}
+  .anos .b{width:72%;background:#9db8e6;border-radius:4px 4px 0 0;min-height:2px} .anos .col.sel .b{background:#d98cb3}
+  .anos .lab{font-size:10.5px;color:#aab8d4}
+  .barra-linha{display:grid;grid-template-columns:320px 1fr 150px;gap:10px;align-items:center;margin-bottom:8px;font-size:12.5px}
+  .barra-linha .nome{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .barra-bg{background:#0c1f44;border-radius:5px;height:18px;overflow:hidden}.barra-fill{background:#5b9bd5;height:100%}
+  .val{text-align:right;font-variant-numeric:tabular-nums}
+  .rodape{font-size:11.5px;opacity:.7;margin-top:16px;text-align:right}
+  #status{padding:40px;text-align:center;font-size:15px;opacity:.85}
+</style>
+</head>
+<body>
+  <div class="topo">
+    <div class="logo"><span class="o">◎</span> AEB</div>
+    <h1>DEMONSTRATIVO ORÇAMENTÁRIO E FINANCEIRO <span id="anoTit" style="font-weight:400"></span></h1>
+    <label style="font-size:13px">Exercício <select id="ano"></select></label>
+  </div>
+  <main>
+    <div id="status">Carregando dados do Supabase…</div>
+    <div id="conteudo" style="display:none">
+      <div class="cards" id="cards"></div>
+      <div class="grid2">
+        <div class="painel">
+          <h2>Série Histórica do Orçamento da AEB (R$ — LOA Atualizada)</h2>
+          <div class="anos" id="serie"></div>
+        </div>
+        <div class="gauges" id="gauges"></div>
+      </div>
+      <div class="painel" style="margin-top:16px">
+        <h2>Execução por Ação (<span id="anoR"></span>)</h2>
+        <div id="ranking"></div>
+      </div>
+      <div class="rodape">Fonte: Tesouro Gerencial (via Supabase) · <span id="ger"></span></div>
+    </div>
+  </main>
+
+<script>
+// chave anon é pública por design (protegida por RLS de leitura); pode ficar no client.
+const SUPABASE_URL  = "https://jcmxxdbheuymophxyysk.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjbXh4ZGJoZXV5bW9waHh5eXNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNTUzNzAsImV4cCI6MjA5NzczMTM3MH0.E-uC1ALQ2AImTZ8vNEsywpvSES1R6kpGenUyipQn11E";
+const UO = "24205", AEB = "ESPACIAL";
+const H = { apikey: SUPABASE_ANON, Authorization: "Bearer " + SUPABASE_ANON };
+
+const brl  = v => "R$ " + (Number(v)||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+const abrev= v => { v=Number(v)||0; if(Math.abs(v)>=1e9) return "R$ "+(v/1e9).toLocaleString("pt-BR",{maximumFractionDigits:1})+" bi";
+  if(Math.abs(v)>=1e6) return "R$ "+(v/1e6).toLocaleString("pt-BR",{maximumFractionDigits:1})+" mi"; return brl(v); };
+const pct = (n,d)=> d? Math.round(n/d*1000)/10 : 0;
+
+async function getJSON(path){ const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {headers:H}); if(!r.ok) throw r; return r.json(); }
+
+// 1) tenta a view agregada; 2) fallback: puxa a base paginada e agrega no client
+async function carregarCards(){
+  try { return await getJSON(`orcamento_cards?id_uo=eq.${UO}&order=id_ano_lanc`); }
+  catch(_) { return await agregarDaBase(); }
+}
+async function agregarDaBase(){
+  let linhas=[], off=0;
+  while(true){
+    const lote = await getJSON(`orcamento?id_uo=eq.${UO}&select=id_ano_lanc,co_item_informacao,saldo_item_informacao,no_ug&limit=1000&offset=${off}`);
+    linhas = linhas.concat(lote); if(lote.length<1000) break; off+=1000;
+  }
+  const M={}, esp = s => (s||"").toUpperCase().includes(AEB);
+  for(const r of linhas){
+    const a=(M[r.id_ano_lanc] ||= {id_ano_lanc:r.id_ano_lanc, ploa:0,loa_inicial:0,loa_atualizada:0,indisponivel:0,
+      descentralizado:0,pre_empenhado:0,empenhado:0,liquidado:0,pago:0,disponivel:0,
+      empenhado_aeb:0,empenhado_outras:0,liquidado_aeb:0,pago_aeb:0});
+    const v=Number(r.saldo_item_informacao)||0, co=r.co_item_informacao;
+    ({8:()=>a.ploa+=v,9:()=>a.loa_inicial+=v,13:()=>a.loa_atualizada+=v,20:()=>a.indisponivel+=v,
+      18:()=>a.descentralizado+=v,22:()=>a.pre_empenhado+=v,19:()=>a.disponivel+=v,
+      29:()=>{a.empenhado+=v; esp(r.no_ug)?a.empenhado_aeb+=v:a.empenhado_outras+=v;},
+      31:()=>{a.liquidado+=v; if(esp(r.no_ug))a.liquidado_aeb+=v;},
+      34:()=>{a.pago+=v; if(esp(r.no_ug))a.pago_aeb+=v;}}[co]||(()=>{}))();
+  }
+  return Object.values(M).map(a=>({...a, execucao_pct: a.loa_atualizada? Math.round(a.empenhado/a.loa_atualizada*10000)/100:0}))
+    .sort((x,y)=>x.id_ano_lanc-y.id_ano_lanc);
+}
+async function carregarAcoes(ano){
+  try { return await getJSON(`orcamento_por_acao?id_uo=eq.${UO}&id_ano_lanc=eq.${ano}&order=empenhado.desc`); }
+  catch(_){
+    const rows = await getJSON(`orcamento?id_uo=eq.${UO}&id_ano_lanc=eq.${ano}&co_item_informacao=eq.29&select=id_acao_pt,no_acao_pt,saldo_item_informacao`);
+    const M={}; for(const r of rows){ const a=(M[r.id_acao_pt]||={id_acao_pt:r.id_acao_pt,no_acao_pt:r.no_acao_pt,empenhado:0}); a.empenhado+=Number(r.saldo_item_informacao)||0; }
+    return Object.values(M).sort((x,y)=>y.empenhado-x.empenhado);
+  }
+}
+
+const CARDS = [
+  ["PLOA","ploa","var(--teal)"],["LOA Inicial","loa_inicial","var(--azul)"],
+  ["LOA Atualizada","loa_atualizada","var(--rosa)"],["Indisponível","indisponivel","var(--cinza)"],
+  ["Descentralizado","descentralizado","#9db8d6"],["Pré-Empenhado","pre_empenhado","#c8d0de"],
+  ["Empenhado (AEB)","empenhado_aeb","var(--teal)"],["Empenhado (Outras UGs)","empenhado_outras","var(--azul)"],
+  ["Liquidado (AEB)","liquidado_aeb","var(--rosa)"],["Pago (AEB)","pago_aeb","var(--verde)"],
+  ["Disponível","disponivel","var(--cinza)"],["Execução","__exec","var(--amarelo)"],
+];
+function gauge(p,cor){const x=Math.max(0,Math.min(p,100))/100,r=52,C=Math.PI*r;
+  return `<svg viewBox="0 0 140 78" width="150"><path d="M18 64 A52 52 0 0 1 122 64" fill="none" stroke="#22406e" stroke-width="13" stroke-linecap="round"/>
+  <path d="M18 64 A52 52 0 0 1 122 64" fill="none" stroke="${cor}" stroke-width="13" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-x)}"/></svg>`;}
+
+let DADOS={}, ANOS=[];
+async function render(){
+  const ano=sel.value, d=DADOS[ano];
+  anoTit.textContent="Em "+ano; document.getElementById("anoR").textContent=ano;
+  document.getElementById("cards").innerHTML = CARDS.map(([t,k,cor])=>{
+    const val = k==="__exec" ? (d.execucao_pct+"%") : brl(d[k]);
+    return `<div class="c" style="background:${cor}"><div class="t">${t}</div><div class="v">${val}</div></div>`;}).join("");
+  const max=Math.max(...ANOS.map(a=>DADOS[a].loa_atualizada),1);
+  document.getElementById("serie").innerHTML = ANOS.map(a=>{const h=Math.max(Math.round(DADOS[a].loa_atualizada/max*110),2);
+    return `<div class="col ${a===ano?'sel':''}" data-a="${a}" title="${a}: ${abrev(DADOS[a].loa_atualizada)}"><div class="b" style="height:${h}px"></div><div class="lab">${a}</div></div>`;}).join("");
+  document.querySelectorAll("#serie .col").forEach(c=>c.onclick=()=>{sel.value=c.dataset.a; render();});
+  const g=[["LOA Inicial / PLOA", d.ploa? d.loa_inicial/d.ploa*100:0,"#5b9bd5"],
+           ["LOA Atualizada / LOA Inicial", d.loa_inicial? d.loa_atualizada/d.loa_inicial*100:0,"#d98cb3"],
+           ["% Execução", d.execucao_pct,"#f0b429"]];
+  document.getElementById("gauges").innerHTML = g.map(([l,v,c])=>`<div class="gauge"><div class="lab">${l}</div>${gauge(v,c)}<div class="num">${v.toLocaleString("pt-BR",{maximumFractionDigits:2})}%</div></div>`).join("");
+  const ac = await carregarAcoes(ano), m2=ac[0]?ac[0].empenhado:1;
+  document.getElementById("ranking").innerHTML = ac.map(a=>{const w=Math.max(a.empenhado/m2*100,0.5);
+    return `<div class="barra-linha"><div class="nome" title="${a.id_acao_pt} - ${a.no_acao_pt||''}">${a.id_acao_pt} - ${a.no_acao_pt||''}</div>
+    <div class="barra-bg"><div class="barra-fill" style="width:${w}%"></div></div><div class="val">${abrev(a.empenhado)}</div></div>`;}).join("");
+}
+const sel=document.getElementById("ano"), anoTit=document.getElementById("anoTit");
+sel.onchange=render;
+(async()=>{
+  try{
+    const cards = await carregarCards();
+    cards.forEach(r=>DADOS[r.id_ano_lanc]=r);
+    ANOS = cards.map(r=>r.id_ano_lanc).sort((a,b)=>a-b);
+    ANOS.slice().reverse().forEach(a=>{const o=document.createElement("option");o.value=a;o.textContent=a;sel.appendChild(o);});
+    document.getElementById("ger").textContent = "Atualização automática · "+ANOS.length+" exercícios";
+    document.getElementById("status").style.display="none";
+    document.getElementById("conteudo").style.display="block";
+    await render();
+  }catch(e){ document.getElementById("status").innerHTML = "Falha ao carregar do Supabase. Verifique URL/chave anon e o RLS.<br><small>"+e+"</small>"; }
+})();
+</script>
+</body>
+</html>
