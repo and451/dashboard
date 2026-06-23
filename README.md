@@ -121,16 +121,17 @@ O `services.py` tenta conexão em ordem:
 ## Pendências / Próximos Passos
 
 ### 🔴 Prioridade Alta
-1. **Design do painel de orçamento** — Replicar visual do Power BI exatamente:
-   - Sidebar com filtros e menu ("Abrir Menu de Filtros", "Remover Filtros", etc.)
-   - Logo AEB com círculo e satélite no header
-   - Gráfico de linha para série histórica (com área preenchida)
-   - Gauges semicirculares para indicadores
-   - Gráfico de barras por diretoria
-   - Fundo com estrelas (tema espacial)
-   - Ver screenshot no arquivo `EXECUCAO - AEB - teste.xlsx` ou no Power BI original
+1. **Design do painel de orçamento** — ✅ **CONCLUÍDO** (`painel-vercel/index.html`):
+   sidebar com abas/filtros, logo AEB + satélite, série histórica em **linha com área
+   e rótulos**, gauges semicirculares, fundo estrelado, 12 cards no layout original.
+   Lê ao vivo do Supabase (views `orcamento_cards`/`orcamento_por_acao`).
+   - ⏳ Falta só "Orçamento por Diretoria" (depende de carregar o mapa ação→diretoria,
+     do Excel `PAINEL DIRETORIAS.xlsx` — não está no Supabase ainda).
 
-2. **Painel de Transferências Voluntárias** — Criar segundo dashboard igual ao primeiro, mas com dados de TV (crédito recebido, empenhado, liquidado, pago)
+2. **Painel de Transferências Voluntárias** — aba já existe no `index.html` (placeholder).
+   Falta **carregar `Base_Transferencia`** no Supabase (mesmo fluxo do orçamento:
+   exportar do Tesouro Gerencial → `load_tesouro_export.py`) e plugar nos mesmos
+   componentes (cards/série/gauges).
 
 ### 🟡 Prioridade Média
 3. Conectar outros 11 painéis ao Supabase ou APIs reais

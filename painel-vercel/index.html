@@ -5,60 +5,166 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Demonstrativo Orçamentário e Financeiro - AEB</title>
 <style>
-  :root{--fundo:#0a1b3d;--card:#13294f;--borda:#23406e;--txt:#eaf0fb;
-        --teal:#2e8b9e;--azul:#5b9bd5;--rosa:#d98cb3;--verde:#3fae6a;--cinza:#8b97ad;--amarelo:#f0b429;}
-  *{box-sizing:border-box} body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;color:var(--txt);
-    background:linear-gradient(160deg,#06122b,#0e2350 60%,#0a1b3d);min-height:100vh}
-  .topo{display:flex;align-items:center;gap:18px;padding:18px 26px}
-  .logo{font-weight:800;font-size:26px;letter-spacing:1px;color:#fff} .logo .o{color:#19c3e6}
-  .topo h1{font-size:21px;margin:0;font-weight:800;flex:1}
-  select{background:#13294f;color:#fff;border:1px solid var(--borda);border-radius:6px;padding:6px 10px;font-size:14px}
-  main{padding:6px 22px 50px}
-  .cards{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin:10px 0 18px}
-  .c{border-radius:10px;padding:12px 14px;color:#10233f;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.25)}
-  .c .t{font-size:12px;font-weight:600;opacity:.85} .c .v{font-size:17px;font-weight:800;margin-top:4px}
-  .grid2{display:grid;grid-template-columns:2fr 1fr;gap:16px}
-  .painel{background:var(--card);border:1px solid var(--borda);border-radius:12px;padding:16px}
-  .painel h2{font-size:15px;margin:0 0 10px;font-weight:700}
+  :root{
+    --bg:#0a1b3d; --card:#13294f; --borda:#23406e; --txt:#eef3fb;
+    --teal:#3c8fa0; --azul:#6fb0e0; --rosa:#e3a7c2; --verde:#7bc47f;
+    --cinza:#b9bcc2; --azulesc:#9db8d6; --claro:#cdd4de; --amarelo:#f0b429;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;color:var(--txt);
+    background:#06122b;min-height:100vh}
+  /* fundo estrelado */
+  .estrelas{position:fixed;inset:0;z-index:-1;
+    background:
+      radial-gradient(1.5px 1.5px at 15% 22%, #fff 50%, transparent),
+      radial-gradient(1px 1px at 42% 65%, #cfe0ff 50%, transparent),
+      radial-gradient(1.5px 1.5px at 68% 18%, #fff 50%, transparent),
+      radial-gradient(1px 1px at 80% 75%, #bcd2ff 50%, transparent),
+      radial-gradient(1px 1px at 30% 85%, #fff 50%, transparent),
+      radial-gradient(1.5px 1.5px at 90% 40%, #fff 50%, transparent),
+      radial-gradient(1px 1px at 55% 35%, #aac4ff 50%, transparent),
+      radial-gradient(1px 1px at 10% 60%, #fff 50%, transparent),
+      linear-gradient(160deg,#06122b,#0e2350 55%,#0a1b3d);
+    background-repeat:no-repeat;background-size:cover;opacity:1}
+  .app{display:flex;min-height:100vh}
+
+  /* SIDEBAR */
+  .sidebar{width:230px;flex:0 0 230px;padding:18px 16px;background:rgba(8,20,46,.55);
+    border-right:1px solid var(--borda);display:flex;flex-direction:column;gap:16px}
+  .logobox{display:flex;align-items:center;gap:10px}
+  .logobox .nome{font-weight:800;font-size:22px;letter-spacing:.5px;color:#fff;line-height:1}
+  .logobox .sub{font-size:8px;letter-spacing:1px;color:#9db8d6;display:block;margin-top:2px}
+  .filtros{display:flex;flex-direction:column;gap:10px}
+  .filtro{display:flex;align-items:center;gap:10px;font-size:13px;color:#cfe0ff}
+  .filtro .ic{width:34px;height:34px;border-radius:50%;background:#16335e;display:flex;
+    align-items:center;justify-content:center;border:1px solid var(--borda)}
+  .tabs{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+  .tab{padding:10px 12px;border-radius:8px;font-size:13px;cursor:pointer;color:#cfe0ff;
+    background:transparent;border:1px solid transparent;text-align:left}
+  .tab.ativa{background:#eef3fb;color:#0c326f;font-weight:700}
+  .ugref{margin-top:auto;font-size:11px;color:#9db8d6}
+  .ugref .b{display:block;background:#16335e;border:1px solid var(--borda);border-radius:8px;
+    padding:8px 10px;color:#fff;text-align:center;margin-top:6px;font-weight:700}
+  .ugref .b.off{background:transparent;color:#7e92b5;font-weight:500}
+  .selExerc{margin-top:8px}
+  select{background:#13294f;color:#fff;border:1px solid var(--borda);border-radius:6px;
+    padding:7px 10px;font-size:14px;width:100%}
+
+  /* MAIN */
+  .main{flex:1;padding:14px 22px 40px;min-width:0}
+  .header{display:flex;align-items:center;gap:16px;margin-bottom:14px}
+  .header h1{font-size:23px;margin:0;font-weight:800;flex:1;letter-spacing:.3px}
+  .header h1 small{font-weight:400;font-size:18px;opacity:.85}
+  .sat{width:74px;height:54px;flex:0 0 auto}
+
+  .cards{display:grid;grid-template-columns:repeat(6,1fr);gap:11px;margin-bottom:14px}
+  .c{border-radius:10px;padding:11px 12px;color:#10233f;text-align:center;
+    box-shadow:0 2px 10px rgba(0,0,0,.3)}
+  .c .t{font-size:11.5px;font-weight:600;opacity:.9;line-height:1.2;min-height:26px;
+    display:flex;align-items:center;justify-content:center}
+  .c .v{font-size:16px;font-weight:800;margin-top:2px}
+
+  .grid2{display:grid;grid-template-columns:2.1fr 1fr;gap:14px}
+  .painel{background:rgba(19,41,79,.78);border:1px solid var(--borda);border-radius:12px;padding:14px 16px}
+  .painel h2{font-size:14.5px;margin:0 0 6px;font-weight:700}
   .gauges{display:flex;flex-direction:column;gap:12px}
-  .gauge{background:var(--card);border:1px solid var(--borda);border-radius:12px;padding:10px 16px;text-align:center}
-  .gauge .lab{font-size:13px;opacity:.9} .gauge .num{font-size:26px;font-weight:800;margin-top:-6px}
-  .anos{display:flex;gap:6px;align-items:flex-end;height:150px;padding:8px 4px 0}
-  .anos .col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;cursor:pointer}
-  .anos .b{width:72%;background:#9db8e6;border-radius:4px 4px 0 0;min-height:2px} .anos .col.sel .b{background:#d98cb3}
-  .anos .lab{font-size:10.5px;color:#aab8d4}
-  .barra-linha{display:grid;grid-template-columns:320px 1fr 150px;gap:10px;align-items:center;margin-bottom:8px;font-size:12.5px}
+  .gauge{background:rgba(19,41,79,.78);border:1px solid var(--borda);border-radius:12px;
+    padding:8px 16px 12px;text-align:center}
+  .gauge .lab{font-size:12.5px;opacity:.92}
+  .gauge .num{font-size:25px;font-weight:800;margin-top:-8px}
+
+  .barra-linha{display:grid;grid-template-columns:300px 1fr 130px;gap:10px;align-items:center;
+    margin-bottom:7px;font-size:12.5px}
   .barra-linha .nome{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .barra-bg{background:#0c1f44;border-radius:5px;height:18px;overflow:hidden}.barra-fill{background:#5b9bd5;height:100%}
+  .barra-bg{background:#0c1f44;border-radius:5px;height:18px;overflow:hidden}
+  .barra-fill{background:var(--azul);height:100%;border-radius:5px}
   .val{text-align:right;font-variant-numeric:tabular-nums}
-  .rodape{font-size:11.5px;opacity:.7;margin-top:16px;text-align:right}
-  #status{padding:40px;text-align:center;font-size:15px;opacity:.85}
+  .rodape{font-size:11px;opacity:.7;margin-top:14px;display:flex;justify-content:space-between}
+  #status{padding:60px;text-align:center;font-size:15px;opacity:.85}
+  .placeholder{padding:50px 20px;text-align:center;opacity:.8;font-size:14px;line-height:1.7}
+  text{font-family:Segoe UI,Arial,sans-serif}
 </style>
 </head>
 <body>
-  <div class="topo">
-    <div class="logo"><span class="o">◎</span> AEB</div>
-    <h1>DEMONSTRATIVO ORÇAMENTÁRIO E FINANCEIRO <span id="anoTit" style="font-weight:400"></span></h1>
-    <label style="font-size:13px">Exercício <select id="ano"></select></label>
-  </div>
-  <main>
+<div class="estrelas"></div>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logobox">
+      <svg width="40" height="40" viewBox="0 0 40 40"><ellipse cx="20" cy="20" rx="18" ry="8" fill="none" stroke="#19c3e6" stroke-width="2.4" transform="rotate(-25 20 20)"/><circle cx="20" cy="20" r="6.5" fill="#19c3e6"/></svg>
+      <div><span class="nome">AEB</span><span class="sub">AGÊNCIA ESPACIAL BRASILEIRA</span></div>
+    </div>
+    <div class="filtros">
+      <div class="filtro"><span class="ic">▼</span> Abrir Menu de Filtros</div>
+      <div class="filtro"><span class="ic">✕</span> Remover Filtros</div>
+    </div>
+    <div class="tabs">
+      <div class="tab ativa" id="tabOrc">Planejamento Orçamentário</div>
+      <div class="tab" id="tabTransf">Transferências de Recursos Orçamentários</div>
+    </div>
+    <label class="selExerc" style="font-size:12px;color:#9db8d6">Exercício
+      <select id="ano"></select>
+    </label>
+    <div class="ugref">REFERÊNCIA DE UG:
+      <span class="b">AEB</span>
+      <span class="b off">Outras UGs</span>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="header">
+      <h1>DEMONSTRATIVO ORÇAMENTÁRIO E FINANCEIRO <small id="anoTit"></small></h1>
+      <svg class="sat" viewBox="0 0 90 64"><g fill="none" stroke="#cfe0ff" stroke-width="2">
+        <rect x="38" y="26" width="16" height="12" rx="2" fill="#16335e"/>
+        <rect x="12" y="22" width="22" height="20" fill="#1b4a86"/><rect x="58" y="22" width="22" height="20" fill="#1b4a86"/>
+        <line x1="34" y1="32" x2="38" y2="32"/><line x1="54" y1="32" x2="58" y2="32"/>
+        <line x1="46" y1="26" x2="46" y2="14"/><circle cx="46" cy="11" r="3" fill="#f0b429" stroke="none"/></g></svg>
+    </div>
+
     <div id="status">Carregando dados do Supabase…</div>
-    <div id="conteudo" style="display:none">
+
+    <!-- PÁGINA ORÇAMENTO -->
+    <div id="paginaOrc" style="display:none">
       <div class="cards" id="cards"></div>
       <div class="grid2">
         <div class="painel">
           <h2>Série Histórica do Orçamento da AEB (R$ — LOA Atualizada)</h2>
-          <div class="anos" id="serie"></div>
+          <div id="serie"></div>
         </div>
         <div class="gauges" id="gauges"></div>
       </div>
-      <div class="painel" style="margin-top:16px">
-        <h2>Execução por Ação (<span id="anoR"></span>)</h2>
+      <div class="painel" style="margin-top:14px">
+        <h2>Execução por Ação (<span id="anoR"></span>) — Empenhado</h2>
         <div id="ranking"></div>
       </div>
-      <div class="rodape">Fonte: Tesouro Gerencial (via Supabase) · <span id="ger"></span></div>
+      <div class="rodape">
+        <span>Fonte: Tesouro Gerencial (via Supabase) · UO 24205 — AEB</span>
+        <span id="ger"></span>
+      </div>
+    </div>
+
+    <!-- PÁGINA TRANSFERÊNCIAS -->
+    <div id="paginaTransf" style="display:none">
+      <div id="statusT" class="placeholder" style="display:none"></div>
+      <div id="conteudoT" style="display:none">
+        <div class="cards" id="cardsT" style="grid-template-columns:repeat(7,1fr)"></div>
+        <div class="grid2">
+          <div class="painel">
+            <h2>Série Histórica do Crédito Recebido (R$)</h2>
+            <div id="serieT"></div>
+          </div>
+          <div class="gauges" id="gaugesT"></div>
+        </div>
+        <div class="rodape">
+          <span>Fonte: Tesouro Gerencial — Transferências (via Supabase) · UO 24205 — AEB</span>
+          <span id="gerT"></span>
+        </div>
+      </div>
     </div>
   </main>
+</div>
 
 <script>
 // chave anon é pública por design (protegida por RLS de leitura); pode ficar no client.
@@ -70,79 +176,143 @@ const H = { apikey: SUPABASE_ANON, Authorization: "Bearer " + SUPABASE_ANON };
 const brl  = v => "R$ " + (Number(v)||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
 const abrev= v => { v=Number(v)||0; if(Math.abs(v)>=1e9) return "R$ "+(v/1e9).toLocaleString("pt-BR",{maximumFractionDigits:1})+" bi";
   if(Math.abs(v)>=1e6) return "R$ "+(v/1e6).toLocaleString("pt-BR",{maximumFractionDigits:1})+" mi"; return brl(v); };
+const milhoes = v => (Number(v)||0)/1e6;
 const pct = (n,d)=> d? Math.round(n/d*1000)/10 : 0;
 
 async function getJSON(path){ const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {headers:H}); if(!r.ok) throw r; return r.json(); }
-
-// 1) tenta a view agregada; 2) fallback: puxa a base paginada e agrega no client
-async function carregarCards(){
-  try { return await getJSON(`orcamento_cards?id_uo=eq.${UO}&order=id_ano_lanc`); }
-  catch(_) { return await agregarDaBase(); }
-}
-async function agregarDaBase(){
+async function carregarCards(){ try{ return await getJSON(`orcamento_cards?id_uo=eq.${UO}&order=id_ano_lanc`);}catch(_){ return agregarBase(); } }
+async function agregarBase(){
   let linhas=[], off=0;
-  while(true){
-    const lote = await getJSON(`orcamento?id_uo=eq.${UO}&select=id_ano_lanc,co_item_informacao,saldo_item_informacao,no_ug&limit=1000&offset=${off}`);
-    linhas = linhas.concat(lote); if(lote.length<1000) break; off+=1000;
-  }
-  const M={}, esp = s => (s||"").toUpperCase().includes(AEB);
-  for(const r of linhas){
-    const a=(M[r.id_ano_lanc] ||= {id_ano_lanc:r.id_ano_lanc, ploa:0,loa_inicial:0,loa_atualizada:0,indisponivel:0,
-      descentralizado:0,pre_empenhado:0,empenhado:0,liquidado:0,pago:0,disponivel:0,
-      empenhado_aeb:0,empenhado_outras:0,liquidado_aeb:0,pago_aeb:0});
+  while(true){ const lote = await getJSON(`orcamento?id_uo=eq.${UO}&select=id_ano_lanc,co_item_informacao,saldo_item_informacao,no_ug&limit=1000&offset=${off}`);
+    linhas=linhas.concat(lote); if(lote.length<1000)break; off+=1000; }
+  const M={}, esp=s=>(s||"").toUpperCase().includes(AEB);
+  for(const r of linhas){ const a=(M[r.id_ano_lanc]||={id_ano_lanc:r.id_ano_lanc,ploa:0,loa_inicial:0,loa_atualizada:0,indisponivel:0,descentralizado:0,pre_empenhado:0,empenhado:0,liquidado:0,pago:0,disponivel:0,empenhado_aeb:0,empenhado_outras:0,liquidado_aeb:0,pago_aeb:0});
     const v=Number(r.saldo_item_informacao)||0, co=r.co_item_informacao;
-    ({8:()=>a.ploa+=v,9:()=>a.loa_inicial+=v,13:()=>a.loa_atualizada+=v,20:()=>a.indisponivel+=v,
-      18:()=>a.descentralizado+=v,22:()=>a.pre_empenhado+=v,19:()=>a.disponivel+=v,
-      29:()=>{a.empenhado+=v; esp(r.no_ug)?a.empenhado_aeb+=v:a.empenhado_outras+=v;},
-      31:()=>{a.liquidado+=v; if(esp(r.no_ug))a.liquidado_aeb+=v;},
-      34:()=>{a.pago+=v; if(esp(r.no_ug))a.pago_aeb+=v;}}[co]||(()=>{}))();
-  }
-  return Object.values(M).map(a=>({...a, execucao_pct: a.loa_atualizada? Math.round(a.empenhado/a.loa_atualizada*10000)/100:0}))
-    .sort((x,y)=>x.id_ano_lanc-y.id_ano_lanc);
+    ({8:()=>a.ploa+=v,9:()=>a.loa_inicial+=v,13:()=>a.loa_atualizada+=v,20:()=>a.indisponivel+=v,18:()=>a.descentralizado+=v,22:()=>a.pre_empenhado+=v,19:()=>a.disponivel+=v,
+      29:()=>{a.empenhado+=v;esp(r.no_ug)?a.empenhado_aeb+=v:a.empenhado_outras+=v;},31:()=>{a.liquidado+=v;if(esp(r.no_ug))a.liquidado_aeb+=v;},34:()=>{a.pago+=v;if(esp(r.no_ug))a.pago_aeb+=v;}}[co]||(()=>{}))();}
+  return Object.values(M).map(a=>({...a,execucao_pct:a.loa_atualizada?Math.round(a.empenhado/a.loa_atualizada*10000)/100:0})).sort((x,y)=>x.id_ano_lanc-y.id_ano_lanc);
 }
 async function carregarAcoes(ano){
-  try { return await getJSON(`orcamento_por_acao?id_uo=eq.${UO}&id_ano_lanc=eq.${ano}&order=empenhado.desc`); }
-  catch(_){
-    const rows = await getJSON(`orcamento?id_uo=eq.${UO}&id_ano_lanc=eq.${ano}&co_item_informacao=eq.29&select=id_acao_pt,no_acao_pt,saldo_item_informacao`);
-    const M={}; for(const r of rows){ const a=(M[r.id_acao_pt]||={id_acao_pt:r.id_acao_pt,no_acao_pt:r.no_acao_pt,empenhado:0}); a.empenhado+=Number(r.saldo_item_informacao)||0; }
-    return Object.values(M).sort((x,y)=>y.empenhado-x.empenhado);
-  }
+  try{ const r = await getJSON(`orcamento_por_acao?id_uo=eq.${UO}&id_ano_lanc=eq.${ano}&order=empenhado.desc`);
+    return r.map(a=>({...a,empenhado:Number(a.empenhado)||0})).filter(a=>a.empenhado>0); }
+  catch(_){ const rows = await getJSON(`orcamento?id_uo=eq.${UO}&id_ano_lanc=eq.${ano}&co_item_informacao=eq.29&select=id_acao_pt,no_acao_pt,saldo_item_informacao`);
+    const M={}; for(const r of rows){const a=(M[r.id_acao_pt]||={id_acao_pt:r.id_acao_pt,no_acao_pt:r.no_acao_pt,empenhado:0});a.empenhado+=Number(r.saldo_item_informacao)||0;}
+    return Object.values(M).filter(a=>a.empenhado>0).sort((x,y)=>y.empenhado-x.empenhado); }
 }
 
 const CARDS = [
   ["PLOA","ploa","var(--teal)"],["LOA Inicial","loa_inicial","var(--azul)"],
   ["LOA Atualizada","loa_atualizada","var(--rosa)"],["Indisponível","indisponivel","var(--cinza)"],
-  ["Descentralizado","descentralizado","#9db8d6"],["Pré-Empenhado","pre_empenhado","#c8d0de"],
+  ["Descentralizado","descentralizado","var(--azulesc)"],["Pré-Empenhado","pre_empenhado","var(--claro)"],
   ["Empenhado (AEB)","empenhado_aeb","var(--teal)"],["Empenhado (Outras UGs)","empenhado_outras","var(--azul)"],
   ["Liquidado (AEB)","liquidado_aeb","var(--rosa)"],["Pago (AEB)","pago_aeb","var(--verde)"],
-  ["Disponível","disponivel","var(--cinza)"],["Execução","__exec","var(--amarelo)"],
+  ["Disponível","disponivel","var(--cinza)"],["Execução","__exec","var(--cinza)"],
 ];
+
 function gauge(p,cor){const x=Math.max(0,Math.min(p,100))/100,r=52,C=Math.PI*r;
-  return `<svg viewBox="0 0 140 78" width="150"><path d="M18 64 A52 52 0 0 1 122 64" fill="none" stroke="#22406e" stroke-width="13" stroke-linecap="round"/>
-  <path d="M18 64 A52 52 0 0 1 122 64" fill="none" stroke="${cor}" stroke-width="13" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-x)}"/></svg>`;}
+  return `<svg viewBox="0 0 140 80" width="155"><path d="M18 66 A52 52 0 0 1 122 66" fill="none" stroke="#0c1f44" stroke-width="13" stroke-linecap="round"/>
+  <path d="M18 66 A52 52 0 0 1 122 66" fill="none" stroke="${cor}" stroke-width="13" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-x)}"/></svg>`;}
+
+function serieLinha(anos, dados, anoSel, campo){
+  campo = campo || "loa_atualizada";
+  const W=760,Hh=290,pl=20,pr=20,pt=34,pb=30;
+  const pts=anos.map(a=>({a,v:milhoes(dados[a][campo])}));
+  const max=Math.max(...pts.map(p=>p.v))*1.14, min=Math.min(...pts.map(p=>p.v))*0.82;
+  const X=i=>pl+i*(W-pl-pr)/(pts.length-1), Y=v=>Hh-pb-(v-min)/(max-min)*(Hh-pt-pb);
+  const line=pts.map((p,i)=>`${X(i).toFixed(1)},${Y(p.v).toFixed(1)}`).join(" ");
+  const area=`${pl},${Hh-pb} ${line} ${W-pr},${Hh-pb}`;
+  const dots=pts.map((p,i)=>`<circle class="pt" data-a="${p.a}" cx="${X(i).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="${p.a==anoSel?5:3.5}" fill="${p.a==anoSel?'#fff':'#e3a7c2'}" stroke="#b56b94" stroke-width="1.2" style="cursor:pointer"/>`).join("");
+  const labs=pts.map((p,i)=>`<text x="${X(i).toFixed(1)}" y="${(Y(p.v)-10).toFixed(1)}" fill="#e9eefb" font-size="9.5" text-anchor="middle">${p.v.toLocaleString("pt-BR",{maximumFractionDigits:1})} mi</text>`).join("");
+  const xl=pts.map((p,i)=> i%2===0?`<text x="${X(i).toFixed(1)}" y="${Hh-9}" fill="#aab8d4" font-size="11" text-anchor="middle">${p.a}</text>`:"").join("");
+  return `<svg viewBox="0 0 ${W} ${Hh}" width="100%"><polygon points="${area}" fill="rgba(217,140,179,.16)"/>
+    <polyline points="${line}" fill="none" stroke="#d98cb3" stroke-width="2.6"/>${dots}${labs}${xl}</svg>`;
+}
 
 let DADOS={}, ANOS=[];
+const sel=document.getElementById("ano"), anoTit=document.getElementById("anoTit");
+
 async function render(){
   const ano=sel.value, d=DADOS[ano];
   anoTit.textContent="Em "+ano; document.getElementById("anoR").textContent=ano;
   document.getElementById("cards").innerHTML = CARDS.map(([t,k,cor])=>{
-    const val = k==="__exec" ? (d.execucao_pct+"%") : brl(d[k]);
+    const val = k==="__exec" ? (Number(d.execucao_pct).toLocaleString("pt-BR",{maximumFractionDigits:2})+"%") : brl(d[k]);
     return `<div class="c" style="background:${cor}"><div class="t">${t}</div><div class="v">${val}</div></div>`;}).join("");
-  const max=Math.max(...ANOS.map(a=>DADOS[a].loa_atualizada),1);
-  document.getElementById("serie").innerHTML = ANOS.map(a=>{const h=Math.max(Math.round(DADOS[a].loa_atualizada/max*110),2);
-    return `<div class="col ${a===ano?'sel':''}" data-a="${a}" title="${a}: ${abrev(DADOS[a].loa_atualizada)}"><div class="b" style="height:${h}px"></div><div class="lab">${a}</div></div>`;}).join("");
-  document.querySelectorAll("#serie .col").forEach(c=>c.onclick=()=>{sel.value=c.dataset.a; render();});
-  const g=[["LOA Inicial / PLOA", d.ploa? d.loa_inicial/d.ploa*100:0,"#5b9bd5"],
+  // série em linha
+  const cont=document.getElementById("serie");
+  cont.innerHTML = serieLinha(ANOS, DADOS, ano);
+  cont.querySelectorAll(".pt").forEach(p=>p.onclick=()=>{sel.value=p.dataset.a; render();});
+  // medidores
+  const g=[["LOA Inicial / PLOA", d.ploa? d.loa_inicial/d.ploa*100:0,"#6fb0e0"],
            ["LOA Atualizada / LOA Inicial", d.loa_inicial? d.loa_atualizada/d.loa_inicial*100:0,"#d98cb3"],
-           ["% Execução", d.execucao_pct,"#f0b429"]];
+           ["% Execução", Number(d.execucao_pct),"#f0b429"]];
   document.getElementById("gauges").innerHTML = g.map(([l,v,c])=>`<div class="gauge"><div class="lab">${l}</div>${gauge(v,c)}<div class="num">${v.toLocaleString("pt-BR",{maximumFractionDigits:2})}%</div></div>`).join("");
+  // execução por ação
   const ac = await carregarAcoes(ano), m2=ac[0]?ac[0].empenhado:1;
-  document.getElementById("ranking").innerHTML = ac.map(a=>{const w=Math.max(a.empenhado/m2*100,0.5);
+  document.getElementById("ranking").innerHTML = ac.length? ac.map(a=>{const w=Math.max(a.empenhado/m2*100,0.5);
     return `<div class="barra-linha"><div class="nome" title="${a.id_acao_pt} - ${a.no_acao_pt||''}">${a.id_acao_pt} - ${a.no_acao_pt||''}</div>
-    <div class="barra-bg"><div class="barra-fill" style="width:${w}%"></div></div><div class="val">${abrev(a.empenhado)}</div></div>`;}).join("");
+    <div class="barra-bg"><div class="barra-fill" style="width:${w}%"></div></div><div class="val">${abrev(a.empenhado)}</div></div>`;}).join("")
+    : '<div style="opacity:.6;padding:10px">Sem execução registrada para este exercício.</div>';
 }
-const sel=document.getElementById("ano"), anoTit=document.getElementById("anoTit");
-sel.onchange=render;
+// ===== TRANSFERÊNCIAS =====
+const CARDS_T = [
+  ["Crédito Recebido","credito_recebido","var(--azul)"],["Pré Empenhado","pre_empenhado","var(--cinza)"],
+  ["Empenhado","empenhado","var(--teal)"],["Liquidado","liquidado","var(--rosa)"],
+  ["Pago","pago","var(--verde)"],["Disponível","disponivel","var(--cinza)"],["% Execução","__execT","var(--cinza)"],
+];
+let DADOST={}, ANOST=[], transfOK=false;
+async function carregarTransf(){
+  const c = await getJSON(`transferencia_cards?id_uo=eq.${UO}&order=id_ano_lanc`);
+  if(!c.length) throw new Error("vazio");
+  return c;
+}
+async function renderTransf(){
+  if(!transfOK){
+    try{
+      const c = await carregarTransf();
+      c.forEach(r=>DADOST[r.id_ano_lanc]=r);
+      ANOST = c.map(r=>r.id_ano_lanc).sort((a,b)=>a-b);
+      transfOK=true;
+      document.getElementById("statusT").style.display="none";
+      document.getElementById("conteudoT").style.display="block";
+    }catch(e){
+      document.getElementById("conteudoT").style.display="none";
+      const s=document.getElementById("statusT"); s.style.display="block";
+      s.innerHTML="<b>EXECUÇÃO DAS TRANSFERÊNCIAS VOLUNTÁRIAS</b><br><br>"
+        +"Aguardando a carga dos dados de transferências no Supabase.<br>"
+        +"Exporte o relatório <code>EXECUÇÃO POR TED - PAINEL</code> do Tesouro Gerencial "
+        +"(mesmo fluxo do orçamento) — o layout já está pronto e liga automaticamente.";
+      return;
+    }
+  }
+  const ano = ANOST.map(String).includes(sel.value)? sel.value : String(ANOST[ANOST.length-1]);
+  const d=DADOST[ano]; document.querySelector(".header h1 small").textContent="Em "+ano;
+  document.getElementById("cardsT").innerHTML = CARDS_T.map(([t,k,cor])=>{
+    const val = k==="__execT" ? (pct(d.empenhado,d.credito_recebido)+"%") : brl(d[k]);
+    return `<div class="c" style="background:${cor}"><div class="t">${t}</div><div class="v">${val}</div></div>`;}).join("");
+  const cont=document.getElementById("serieT"); cont.innerHTML=serieLinha(ANOST, DADOST, ano, "credito_recebido");
+  cont.querySelectorAll(".pt").forEach(p=>p.onclick=()=>{sel.value=p.dataset.a; renderTransf();});
+  const g=[["Empenhado / Crédito recebido", pct(d.empenhado,d.credito_recebido),"#6fb0e0"],
+           ["Liquidado / Empenhado", pct(d.liquidado,d.empenhado),"#d98cb3"],
+           ["Pago / Liquidado", pct(d.pago,d.liquidado),"#7bc47f"]];
+  document.getElementById("gaugesT").innerHTML = g.map(([l,v,c])=>`<div class="gauge"><div class="lab">${l}</div>${gauge(v,c)}<div class="num">${v.toLocaleString("pt-BR",{maximumFractionDigits:2})}%</div></div>`).join("");
+}
+
+// navegação entre páginas
+let pagina="orc";
+sel.onchange=()=>{ pagina==="orc"? render() : renderTransf(); };
+document.getElementById("tabOrc").onclick=()=>trocar("orc");
+document.getElementById("tabTransf").onclick=()=>trocar("transf");
+function trocar(p){
+  pagina=p;
+  document.getElementById("tabOrc").classList.toggle("ativa",p==="orc");
+  document.getElementById("tabTransf").classList.toggle("ativa",p==="transf");
+  document.getElementById("paginaOrc").style.display = p==="orc"?"block":"none";
+  document.getElementById("paginaTransf").style.display = p==="transf"?"block":"none";
+  document.querySelector(".header h1").firstChild.textContent =
+    (p==="orc"?"DEMONSTRATIVO ORÇAMENTÁRIO E FINANCEIRO ":"EXECUÇÃO DAS TRANSFERÊNCIAS VOLUNTÁRIAS ");
+  p==="orc"? render() : renderTransf();
+}
+
 (async()=>{
   try{
     const cards = await carregarCards();
@@ -151,7 +321,7 @@ sel.onchange=render;
     ANOS.slice().reverse().forEach(a=>{const o=document.createElement("option");o.value=a;o.textContent=a;sel.appendChild(o);});
     document.getElementById("ger").textContent = "Atualização automática · "+ANOS.length+" exercícios";
     document.getElementById("status").style.display="none";
-    document.getElementById("conteudo").style.display="block";
+    document.getElementById("paginaOrc").style.display="block";
     await render();
   }catch(e){ document.getElementById("status").innerHTML = "Falha ao carregar do Supabase. Verifique URL/chave anon e o RLS.<br><small>"+e+"</small>"; }
 })();

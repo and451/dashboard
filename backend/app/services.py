@@ -28,9 +28,16 @@ def _pct(num: float, den: float) -> float:
 
 
 def _tem_supabase() -> bool:
-    """Tenta psycopg2 primeiro; se falhar, tenta API REST."""
+    """Tenta psycopg2 primeiro (com ping rapido); se falhar, tenta API REST."""
     if sb is not None and sb._DSN != "":
-        return True
+        # Testar se a conexao realmente funciona (firewall pode bloquear)
+        try:
+            import psycopg2
+            con = psycopg2.connect(sb._DSN, connect_timeout=3)
+            con.close()
+            return True
+        except Exception:
+            pass  # psycopg2 disponivel mas nao consegue conectar (firewall)
     if sb_rest is not None and sb_rest._tem_supabase_rest():
         return True
     return False
@@ -39,7 +46,13 @@ def _tem_supabase() -> bool:
 def _sb_client():
     """Retorna o cliente ativo (psycopg2 ou REST)."""
     if sb is not None and sb._DSN != "":
-        return sb
+        try:
+            import psycopg2
+            con = psycopg2.connect(sb._DSN, connect_timeout=3)
+            con.close()
+            return sb
+        except Exception:
+            pass
     return sb_rest
 
 
